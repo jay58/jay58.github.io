@@ -1,1 +1,1 @@
-IDRViewer.config = {"pagecount":1,"title":"","author":"","fileName":"Jay's_Resume.pdf","bounds":[[909,1286]],"bookmarks":[],"thumbnailType":"jpg","pageType":"html","pageLabels":[]};
+IDRViewer.config = {"pagecount":1,"title":"","author":"","subject":"","keywords":"","creator":"wkhtmltopdf 0.12.4","producer":"Qt 4.8.7","creationdate":"D:20200705111802Z","moddate":"","trapped":"","fileName":"Jay's_Resume.pdf","bounds":[[909,1286]],"bookmarks":[],"thumbnailType":"jpg","pageType":"html","pageLabels":[]};
