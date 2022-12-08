@@ -1,4 +1,4 @@
-/* v1.1.0 */
+/* v1.1.2 */
 (function() {
     "use strict";
 
@@ -6,7 +6,8 @@
         var LoadManager = {},
             preLoadedPages = [],
             annotationsPages,
-            annotationsContainers = [];
+            annotationsContainers = [],
+            config;
 
         (function() {
             var request = new XMLHttpRequest();
@@ -33,7 +34,6 @@
 
         var initPage = function(page) {
             var pageContainer = document.getElementById("page" + page);
-            pageContainer.children[0].style.position = "absolute";
 
             var annotationsContainer = document.createElement("div");
             annotationsContainer.className = "page-inner";
@@ -47,11 +47,15 @@
                 if (annotationsPages[i].page === page) {
                     var annotations = annotationsPages[i].annotations;
                     for (var j = 0; j < annotations.length; j++) {
-                        loadFunction(annotationsContainer, annotations[j]);
+                        loadFunction(annotationsContainer, annotations[j], config);
                     }
                 }
             }
         };
+
+        IDRViewer.on("ready", function(data) {
+            config = data;
+        });
 
         IDRViewer.on("pageload", function(data) {
             if (annotationsPages) {
@@ -96,34 +100,34 @@
             }
         };
 
-        ActionHandler.onclick = function(data) {
+        ActionHandler.onclick = function(data, config) {
             for (var i = 0; i < handlers.click.length; i++) {
                 if (data.type === handlers.click[i].type) {
-                    handlers.click[i].handler.onclick.apply(this, [data]);
+                    handlers.click[i].handler.onclick.apply(this, [data, config]);
                 }
             }
         };
 
-        ActionHandler.onmouseover = function(data) {
+        ActionHandler.onmouseover = function(data, config) {
             for (var i = 0; i < handlers.mouseover.length; i++) {
                 if (data.type === handlers.mouseover[i].type) {
-                    handlers.mouseover[i].handler.onmouseover.apply(this, [data]);
+                    handlers.mouseover[i].handler.onmouseover.apply(this, [data, config]);
                 }
             }
         };
 
-        ActionHandler.onmouseout = function(data) {
+        ActionHandler.onmouseout = function(data, config) {
             for (var i = 0; i < handlers.mouseout.length; i++) {
                 if (data.type === handlers.mouseout[i].type) {
-                    handlers.mouseout[i].handler.onmouseout.apply(this, [data]);
+                    handlers.mouseout[i].handler.onmouseout.apply(this, [data, config]);
                 }
             }
         };
 
-        ActionHandler.ontouchstart = function(data) {
+        ActionHandler.ontouchstart = function(data, config) {
             for (var i = 0; i < handlers.touchstart.length; i++) {
                 if (data.type === handlers.touchstart[i].type) {
-                    handlers.touchstart[i].handler.ontouchstart.apply(this, [data]);
+                    handlers.touchstart[i].handler.ontouchstart.apply(this, [data, config]);
                 }
             }
         };
@@ -149,11 +153,10 @@
             }
         };
 
-        LinkActionHandler.onclick = function(data) {
+        LinkActionHandler.onclick = function(data, config) {
             if (data.action) {
                 switch (data.action.type) {
                     case "URI":
-                        window.open(data.action.uri, "_blank");
                         break;
 
                     case "GoTo":
@@ -186,12 +189,17 @@
                         currentSound = new Audio(data.action.sound);
                         currentSound.play();
                         break;
+                    case "Launch":
+                        if (config.enableLaunchActions) {
+                            window.open("../" + data.action.target, "_blank");
+                        }
+                        break;
                 }
 
             }
         };
 
-        ActionHandler.register(["Link", "Widget"], ["click", "mouseover"], LinkActionHandler);
+        ActionHandler.register(["Link", "Widget", "TextLink"], ["click", "mouseover"], LinkActionHandler);
     })();
 
     (function() {
@@ -214,8 +222,8 @@
             isMobile;
 
         var createPopup = function(data) {
-            if (data["contents"]) {
-                var boundingRect = document.getElementById(data.objref).getBoundingClientRect();
+            if (data["contents"] && data["objref"]) {
+                var boundingRect = document.querySelector("[data-objref='" + data.objref + "']").getBoundingClientRect();
                 var midX = ((boundingRect.right - boundingRect.left) / 2) + boundingRect.left;
                 var bottomY = boundingRect.bottom;
 
@@ -302,7 +310,6 @@
                 newElement.style.height = data.bounds[3] + "px";
                 newElement.title = data.type;
                 newElement.dataset.objref = data.objref;
-                newElement.id = data.objref;
                 for (var i = 0; i < data.richmedia.length; i++) {
                     var src = document.createElement("source");
                     src.setAttribute("src", data.richmedia[i].src);
@@ -318,15 +325,16 @@
     })();
 
     (function() {
-        var createAnnotation = function(container, data) {
+        var createAnnotation = function(container, data, config) {
             var annotation = document.createElement("div");
             annotation.setAttribute("style", "position: absolute; visibility: visible; -webkit-user-select: none;");
             annotation.style.left = data.bounds[0] + "px";
             annotation.style.top = data.bounds[1] + "px";
             annotation.style.width = data.bounds[2] + "px";
             annotation.style.height = data.bounds[3] + "px";
-            annotation.dataset.objref = data.objref;
-            annotation.id = data.objref;
+            if (data.objref) {
+                annotation.dataset.objref = data.objref;
+            }
 
             if (data.appearance) {
                 annotation.style.backgroundImage = "url('" + data.appearance + "')";
@@ -335,16 +343,16 @@
 
             container.appendChild(annotation);
             annotation.addEventListener("click", function() {
-                ActionHandler.onclick.apply(this, [data]);
+                ActionHandler.onclick.apply(this, [data, config]);
             });
             annotation.addEventListener("mouseover", function() {
-                ActionHandler.onmouseover.apply(this, [data]);
+                ActionHandler.onmouseover.apply(this, [data, config]);
             });
             annotation.addEventListener("mouseout", function() {
-                ActionHandler.onmouseout.apply(this, [data]);
+                ActionHandler.onmouseout.apply(this, [data, config]);
             });
             annotation.addEventListener("touchstart", function() {
-                ActionHandler.ontouchstart.apply(this, [data]);
+                ActionHandler.ontouchstart.apply(this, [data, config]);
             });
         };
 
